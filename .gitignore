@@ -1,0 +1,14 @@
+# Maven build output
+target/
+
+# Runtime uploaded files (product images, avatars)
+uploads/
+
+# Editor/OS
+.vscode/
+.idea/
+*.iml
+.DS_Store
+
+# Logs
+*.log
