@@ -2,6 +2,10 @@
 
 ## Embedded ERD HTML
 
+![P5Store Entity Relationship Diagram](docs/erd.png)
+
+> Static fallback above — GitHub strips `<script>` tags from README HTML, so the interactive Mermaid version below won't render on the repo page. Kept for local/tooling use.
+
 ```html
 
 <style>
