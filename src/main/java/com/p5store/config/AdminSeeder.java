@@ -12,6 +12,7 @@ import com.p5store.repository.ProductRepository;
 import com.p5store.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -23,17 +24,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Local-dev only: ensures a known admin login, starter categories, and a
- * handful of sample products exist on every startup, since the in-memory
- * H2 database is wiped on each restart.
+ * Ensures a known admin login, starter categories, and a handful of sample
+ * products exist on every startup — required for local dev since the
+ * in-memory H2 database is wiped on each restart, and also runs once against
+ * the persistent production database to bootstrap the first admin account.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class AdminSeeder implements CommandLineRunner {
 
-    private static final String ADMIN_EMAIL = "admin@pillar5.co.za";
-    private static final String ADMIN_PASSWORD = "admin";
     private static final List<String> STARTER_CATEGORIES = List.of(
             "Electronics", "Watches & Jewelry", "Fragrance", "Leather Goods",
             "Footwear", "Home Audio", "Home & Kitchen", "Accessories"
@@ -45,6 +45,12 @@ public class AdminSeeder implements CommandLineRunner {
     private final ProductRepository productRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${app.admin.email}")
+    private String adminEmail;
+
+    @Value("${app.admin.password}")
+    private String adminPassword;
+
     @Override
     @Transactional
     public void run(String... args) {
@@ -54,15 +60,15 @@ public class AdminSeeder implements CommandLineRunner {
     }
 
     private void seedAdmin() {
-        if (userRepository.existsByEmail(ADMIN_EMAIL)) {
+        if (userRepository.existsByEmail(adminEmail)) {
             return;
         }
 
         User admin = new User();
         admin.setFirstName("Admin");
         admin.setLastName("User");
-        admin.setEmail(ADMIN_EMAIL);
-        admin.setPasswordHash(passwordEncoder.encode(ADMIN_PASSWORD));
+        admin.setEmail(adminEmail);
+        admin.setPasswordHash(passwordEncoder.encode(adminPassword));
         admin.setRole(UserRole.ADMIN);
         admin = userRepository.save(admin);
 
@@ -70,7 +76,7 @@ public class AdminSeeder implements CommandLineRunner {
         cart.setUser(admin);
         cartRepository.save(cart);
 
-        log.info("Seeded admin account: {} / {}", ADMIN_EMAIL, ADMIN_PASSWORD);
+        log.info("Seeded admin account: {}", adminEmail);
     }
 
     private void seedCategories() {
