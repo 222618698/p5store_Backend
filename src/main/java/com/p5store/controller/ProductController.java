@@ -2,11 +2,10 @@ package com.p5store.controller;
 
 import com.p5store.dto.request.ProductRequest;
 import com.p5store.dto.response.ProductResponse;
-import com.p5store.exception.BusinessException;
+import com.p5store.service.FileStorageService;
 import com.p5store.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -14,28 +13,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/v1/products")
 @RequiredArgsConstructor
 public class ProductController {
 
-    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
-
     private final ProductService productService;
-
-    @Value("${app.upload.dir:uploads}")
-    private String uploadDir;
+    private final FileStorageService fileStorageService;
 
     @GetMapping
     public Page<ProductResponse> getAll(@PageableDefault(size = 12) Pageable pageable) {
@@ -86,32 +75,8 @@ public class ProductController {
 
     @PostMapping("/upload-image")
     @PreAuthorize("hasRole('ADMIN')")
-    public Map<String, String> uploadImage(@RequestParam("file") MultipartFile file) throws IOException {
-        if (file.isEmpty()) {
-            throw new BusinessException("File is empty");
-        }
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
-            throw new BusinessException("Unsupported file type: " + contentType
-                    + ". Allowed: JPG, PNG, WEBP");
-        }
-
-        Path dir = Path.of(uploadDir);
-        Files.createDirectories(dir);
-
-        String extension = switch (contentType) {
-            case "image/png" -> ".png";
-            case "image/webp" -> ".webp";
-            default -> ".jpg";
-        };
-        String filename = UUID.randomUUID() + extension;
-        file.transferTo(dir.resolve(filename));
-
-        String url = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/uploads/")
-                .path(filename)
-                .toUriString();
-        return Map.of("url", url);
+    public Map<String, String> uploadImage(@RequestParam("file") MultipartFile file) {
+        return Map.of("url", fileStorageService.upload(file));
     }
 
     @PutMapping("/{id}")

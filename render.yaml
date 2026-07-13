@@ -21,6 +21,16 @@ services:
         sync: false
       - key: APP_CORS_ALLOWED_ORIGINS
         value: https://p5store-storefront.onrender.com,https://p5store-admin.onrender.com
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
       - key: DB_HOST
         fromDatabase:
           name: p5store-db
