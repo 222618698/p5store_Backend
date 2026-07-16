@@ -1,8 +1,10 @@
 package com.p5store.service;
 
 import com.p5store.dto.request.ChangePasswordRequest;
+import com.p5store.dto.request.ForgotPasswordRequest;
 import com.p5store.dto.request.LoginRequest;
 import com.p5store.dto.request.RegisterRequest;
+import com.p5store.dto.request.ResetPasswordRequest;
 import com.p5store.dto.request.UpdateProfileRequest;
 import com.p5store.dto.response.AuthResponse;
 import com.p5store.dto.response.UserResponse;
@@ -13,4 +15,6 @@ public interface UserService {
     UserResponse getUser(Long userId);
     UserResponse updateProfile(Long userId, UpdateProfileRequest request);
     void changePassword(Long userId, ChangePasswordRequest request);
+    void forgotPassword(ForgotPasswordRequest request);
+    void resetPassword(ResetPasswordRequest request);
 }

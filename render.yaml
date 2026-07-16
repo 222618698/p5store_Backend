@@ -31,6 +31,12 @@ services:
         sync: false
       - key: R2_PUBLIC_URL
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: APP_FRONTEND_URL
+        value: https://p5store-storefront.onrender.com
       - key: DB_HOST
         fromDatabase:
           name: p5store-db
