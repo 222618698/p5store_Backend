@@ -16,19 +16,30 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     boolean existsBySku(String sku);
     Optional<Product> findBySku(String sku);
 
+    @Query(value = "SELECT p FROM Product p JOIN FETCH p.category WHERE p.status = :status",
+           countQuery = "SELECT COUNT(p) FROM Product p WHERE p.status = :status")
     Page<Product> findByStatus(ProductStatus status, Pageable pageable);
 
+    @Query("SELECT p FROM Product p JOIN FETCH p.category WHERE p.featured = true AND p.status = :status")
     List<Product> findByFeaturedTrueAndStatus(ProductStatus status);
 
-    List<Product> findByCategoryIdAndStatus(Long categoryId, ProductStatus status);
+    // Categories are 2 levels deep (top-level + subcategories) and products
+    // are tagged to the subcategory, not the top-level parent — so browsing a
+    // top-level category must also include its direct children's products.
+    // JOIN FETCH avoids an N+1 lazy-load of category per row (toResponse()
+    // reads product.getCategory().getName()) — severe once result sets are
+    // thousands of rows rather than a handful of demo products.
+    @Query("SELECT p FROM Product p JOIN FETCH p.category c WHERE p.status = :status " +
+           "AND (c.id = :categoryId OR c.parent.id = :categoryId)")
+    List<Product> findByCategoryIdOrParentIdAndStatus(Long categoryId, ProductStatus status);
 
-    @Query("SELECT p FROM Product p WHERE p.status = 'ACTIVE' AND " +
+    @Query("SELECT p FROM Product p JOIN FETCH p.category WHERE p.status = 'ACTIVE' AND " +
            "(LOWER(p.name) LIKE LOWER(CONCAT('%',:q,'%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%',:q,'%')))")
     List<Product> search(String q);
 
-    @Query("SELECT p FROM Product p WHERE p.status = 'ACTIVE' AND p.price BETWEEN :min AND :max")
+    @Query("SELECT p FROM Product p JOIN FETCH p.category WHERE p.status = 'ACTIVE' AND p.price BETWEEN :min AND :max")
     List<Product> findByPriceRange(BigDecimal min, BigDecimal max);
 
-    @Query("SELECT p FROM Product p WHERE p.status = 'ACTIVE' ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Product p JOIN FETCH p.category WHERE p.status = 'ACTIVE' ORDER BY p.createdAt DESC")
     List<Product> findNewArrivals(Pageable pageable);
 }

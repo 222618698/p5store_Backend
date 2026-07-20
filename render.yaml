@@ -37,6 +37,8 @@ services:
         sync: false
       - key: APP_FRONTEND_URL
         value: https://p5store-storefront.onrender.com
+      - key: APP_CATALOG_IMPORT_URL
+        sync: false
       - key: DB_HOST
         fromDatabase:
           name: p5store-db

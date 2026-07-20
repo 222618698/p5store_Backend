@@ -20,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -70,35 +72,34 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Page<ProductResponse> getAll(Pageable pageable) {
-        return productRepository.findByStatus(ProductStatus.ACTIVE, pageable).map(this::toResponse);
+        Page<Product> page = productRepository.findByStatus(ProductStatus.ACTIVE, pageable);
+        Map<Long, ReviewRepository.ProductRatingAggregate> ratings = ratingsFor(page.getContent());
+        return page.map(p -> toResponse(p, ratings));
     }
 
     @Override
     public List<ProductResponse> getFeatured() {
-        return productRepository.findByFeaturedTrueAndStatus(ProductStatus.ACTIVE)
-                .stream().map(this::toResponse).toList();
+        return toResponseList(productRepository.findByFeaturedTrueAndStatus(ProductStatus.ACTIVE));
     }
 
     @Override
     public List<ProductResponse> getNewArrivals() {
-        return productRepository.findNewArrivals(PageRequest.of(0, 8))
-                .stream().map(this::toResponse).toList();
+        return toResponseList(productRepository.findNewArrivals(PageRequest.of(0, 8)));
     }
 
     @Override
     public List<ProductResponse> getByCategory(Long categoryId) {
-        return productRepository.findByCategoryIdAndStatus(categoryId, ProductStatus.ACTIVE)
-                .stream().map(this::toResponse).toList();
+        return toResponseList(productRepository.findByCategoryIdOrParentIdAndStatus(categoryId, ProductStatus.ACTIVE));
     }
 
     @Override
     public List<ProductResponse> search(String q) {
-        return productRepository.search(q).stream().map(this::toResponse).toList();
+        return toResponseList(productRepository.search(q));
     }
 
     @Override
     public List<ProductResponse> getByPriceRange(BigDecimal min, BigDecimal max) {
-        return productRepository.findByPriceRange(min, max).stream().map(this::toResponse).toList();
+        return toResponseList(productRepository.findByPriceRange(min, max));
     }
 
     private Product toEntity(Product p, ProductRequest req, Category category) {
@@ -125,6 +126,35 @@ public class ProductServiceImpl implements ProductService {
     ProductResponse toResponse(Product p) {
         Double averageRating = reviewRepository.averageRatingByProductId(p.getId());
         long reviewCount = reviewRepository.countByProductIdAndApprovedTrue(p.getId());
+        return toResponse(p, averageRating, reviewCount);
+    }
+
+    // List-returning endpoints must batch the rating lookup (1 query for the
+    // whole list) rather than calling toResponse(Product) per item (2 queries
+    // each) — with thousands of rows that N+1 pattern is severe.
+    private List<ProductResponse> toResponseList(List<Product> products) {
+        Map<Long, ReviewRepository.ProductRatingAggregate> ratings = ratingsFor(products);
+        return products.stream().map(p -> toResponse(p, ratings)).toList();
+    }
+
+    private Map<Long, ReviewRepository.ProductRatingAggregate> ratingsFor(List<Product> products) {
+        if (products.isEmpty()) return Map.of();
+        List<Long> ids = products.stream().map(Product::getId).toList();
+        Map<Long, ReviewRepository.ProductRatingAggregate> map = new HashMap<>();
+        for (ReviewRepository.ProductRatingAggregate agg : reviewRepository.findRatingAggregatesByProductIds(ids)) {
+            map.put(agg.getProductId(), agg);
+        }
+        return map;
+    }
+
+    private ProductResponse toResponse(Product p, Map<Long, ReviewRepository.ProductRatingAggregate> ratings) {
+        ReviewRepository.ProductRatingAggregate agg = ratings.get(p.getId());
+        Double averageRating = agg != null ? agg.getAverageRating() : null;
+        long reviewCount = agg != null ? agg.getReviewCount() : 0L;
+        return toResponse(p, averageRating, reviewCount);
+    }
+
+    private ProductResponse toResponse(Product p, Double averageRating, long reviewCount) {
         List<String> gallery = new ArrayList<>(p.getGalleryImages());
         return new ProductResponse(p.getId(), p.getName(), p.getDescription(), p.getSku(),
                 p.getPrice(), p.getCompareAtPrice(), p.getStockQuantity(), p.getImageUrl(),
