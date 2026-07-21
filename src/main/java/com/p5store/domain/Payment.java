@@ -28,6 +28,12 @@ public class Payment {
     @Column(length = 500)
     private String gatewayResponse;
 
+    // PayPal's own order id, created up-front (before approval/capture) so
+    // the capture step can look it up server-side rather than trusting a
+    // client-supplied id.
+    @Column(length = 50)
+    private String paypalOrderId;
+
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 

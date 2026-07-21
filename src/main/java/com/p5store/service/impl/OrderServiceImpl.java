@@ -4,6 +4,7 @@ import com.p5store.domain.*;
 import com.p5store.enums.ProductStatus;
 import com.p5store.dto.request.PlaceOrderRequest;
 import com.p5store.dto.response.OrderResponse;
+import com.p5store.dto.response.PayPalOrderResponse;
 import com.p5store.exception.BusinessException;
 import com.p5store.exception.ResourceNotFoundException;
 import com.p5store.repository.AddressRepository;
@@ -13,6 +14,7 @@ import com.p5store.repository.ProductRepository;
 import com.p5store.service.DiscountService;
 import com.p5store.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -41,6 +43,10 @@ public class OrderServiceImpl implements OrderService {
     private final AddressRepository addressRepository;
     private final ProductRepository productRepository;
     private final DiscountService discountService;
+    private final PayPalService payPalService;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     @Override
     @Transactional
@@ -163,6 +169,55 @@ public class OrderServiceImpl implements OrderService {
                 productRepository.save(p);
             }
         });
+        return toResponse(orderRepository.save(order));
+    }
+
+    @Override
+    @Transactional
+    public PayPalOrderResponse createPayPalOrder(Long userId, Long orderId) {
+        Order order = findOrder(orderId);
+        if (!order.getUser().getId().equals(userId))
+            throw new BusinessException("Order does not belong to this user");
+
+        Payment payment = order.getPayment();
+        if (payment == null || payment.getMethod() != Payment.PaymentMethod.PAYPAL)
+            throw new BusinessException("This order is not set up for PayPal payment");
+        if (payment.getStatus() != Payment.PaymentStatus.PENDING)
+            throw new BusinessException("This order's payment is not pending");
+
+        String returnUrl = frontendUrl + "/paypal/return?orderId=" + order.getId();
+        String cancelUrl = frontendUrl + "/checkout?paypalCancelled=true";
+        PayPalService.PayPalOrder created = payPalService.createOrder(
+                order.getOrderNumber(), order.getTotal(), returnUrl, cancelUrl);
+
+        payment.setPaypalOrderId(created.paypalOrderId());
+        orderRepository.save(order);
+
+        return new PayPalOrderResponse(created.approvalUrl());
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse capturePayPalOrder(Long userId, Long orderId) {
+        Order order = findOrder(orderId);
+        if (!order.getUser().getId().equals(userId))
+            throw new BusinessException("Order does not belong to this user");
+
+        Payment payment = order.getPayment();
+        if (payment == null || payment.getPaypalOrderId() == null)
+            throw new BusinessException("No PayPal order was started for this order");
+
+        if (payment.getStatus() == Payment.PaymentStatus.COMPLETED) {
+            return toResponse(order);
+        }
+
+        String captureId = payPalService.captureOrder(payment.getPaypalOrderId());
+        payment.setStatus(Payment.PaymentStatus.COMPLETED);
+        payment.setTransactionId(captureId);
+        payment.setGatewayResponse("PayPal capture completed");
+        payment.setPaidAt(LocalDateTime.now());
+        order.setStatus(Order.OrderStatus.CONFIRMED);
+
         return toResponse(orderRepository.save(order));
     }
 

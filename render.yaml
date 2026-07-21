@@ -39,6 +39,10 @@ services:
         value: https://p5store-storefront.onrender.com
       - key: APP_CATALOG_IMPORT_URL
         sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
       - key: DB_HOST
         fromDatabase:
           name: p5store-db

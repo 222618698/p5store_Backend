@@ -3,6 +3,7 @@ package com.p5store.service;
 import com.p5store.domain.Order;
 import com.p5store.dto.request.PlaceOrderRequest;
 import com.p5store.dto.response.OrderResponse;
+import com.p5store.dto.response.PayPalOrderResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -16,4 +17,6 @@ public interface OrderService {
     OrderResponse getByOrderNumber(String orderNumber);
     OrderResponse updateStatus(Long orderId, Order.OrderStatus status);
     OrderResponse cancelOrder(Long userId, Long orderId);
+    PayPalOrderResponse createPayPalOrder(Long userId, Long orderId);
+    OrderResponse capturePayPalOrder(Long userId, Long orderId);
 }

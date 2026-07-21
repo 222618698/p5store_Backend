@@ -3,6 +3,7 @@ package com.p5store.controller;
 import com.p5store.domain.Order;
 import com.p5store.dto.request.PlaceOrderRequest;
 import com.p5store.dto.response.OrderResponse;
+import com.p5store.dto.response.PayPalOrderResponse;
 import com.p5store.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -57,5 +58,15 @@ public class OrderController {
     @PostMapping("/v1/users/{userId}/orders/{orderId}/cancel")
     public OrderResponse cancelOrder(@PathVariable Long userId, @PathVariable Long orderId) {
         return orderService.cancelOrder(userId, orderId);
+    }
+
+    @PostMapping("/v1/users/{userId}/orders/{orderId}/paypal/create")
+    public PayPalOrderResponse createPayPalOrder(@PathVariable Long userId, @PathVariable Long orderId) {
+        return orderService.createPayPalOrder(userId, orderId);
+    }
+
+    @PostMapping("/v1/users/{userId}/orders/{orderId}/paypal/capture")
+    public OrderResponse capturePayPalOrder(@PathVariable Long userId, @PathVariable Long orderId) {
+        return orderService.capturePayPalOrder(userId, orderId);
     }
 }
