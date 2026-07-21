@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Transactional building blocks for {@link CatalogImportService}, split into
@@ -104,15 +105,17 @@ public class CatalogImportWorker {
             }
 
             Product product = new Product();
-            product.setName(p.name());
-            product.setDescription(p.description());
-            product.setSku(p.sku());
+            product.setName(sanitize(p.name()));
+            product.setDescription(sanitize(p.description()));
+            product.setSku(sanitize(p.sku()));
             product.setPrice(p.price());
             product.setCompareAtPrice(p.compareAtPrice());
             int qty = p.stockQuantity() != null ? p.stockQuantity() : 0;
             product.setStockQuantity(qty);
-            product.setImageUrl(p.imageUrl());
-            product.setGalleryImages(p.galleryImages() != null ? new ArrayList<>(p.galleryImages()) : new ArrayList<>());
+            product.setImageUrl(sanitize(p.imageUrl()));
+            product.setGalleryImages(p.galleryImages() != null
+                    ? p.galleryImages().stream().map(this::sanitize).collect(Collectors.toCollection(ArrayList::new))
+                    : new ArrayList<>());
             product.setCategory(entityManager.getReference(Category.class, categoryId));
             product.setStatus(qty > 0 ? ProductStatus.ACTIVE : ProductStatus.OUT_OF_STOCK);
 
@@ -121,5 +124,20 @@ public class CatalogImportWorker {
         }
         entityManager.flush();
         return count;
+    }
+
+    // Postgres text columns reject the NUL byte outright; the source
+    // WordPress export has stray null bytes in some scraped fields, which
+    // previously killed an entire batch's transaction and halted the import.
+    private String sanitize(String s) {
+        if (s == null) return null;
+        StringBuilder sb = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch != 0) {
+                sb.append(ch);
+            }
+        }
+        return sb.toString();
     }
 }
