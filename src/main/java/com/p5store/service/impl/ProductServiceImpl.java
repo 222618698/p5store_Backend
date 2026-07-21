@@ -4,6 +4,7 @@ import com.p5store.domain.Category;
 import com.p5store.enums.ProductStatus;
 import com.p5store.domain.Product;
 import com.p5store.dto.request.ProductRequest;
+import com.p5store.dto.response.CategoryCountResponse;
 import com.p5store.dto.response.ProductResponse;
 import com.p5store.exception.BusinessException;
 import com.p5store.exception.ResourceNotFoundException;
@@ -100,6 +101,13 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductResponse> getByPriceRange(BigDecimal min, BigDecimal max) {
         return toResponseList(productRepository.findByPriceRange(min, max));
+    }
+
+    @Override
+    public List<CategoryCountResponse> getCategoryCounts() {
+        return productRepository.countByTopLevelCategory().stream()
+                .map(row -> new CategoryCountResponse(row.getCategoryId(), row.getCount()))
+                .toList();
     }
 
     private Product toEntity(Product p, ProductRequest req, Category category) {

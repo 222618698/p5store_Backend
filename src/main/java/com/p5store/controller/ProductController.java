@@ -1,6 +1,7 @@
 package com.p5store.controller;
 
 import com.p5store.dto.request.ProductRequest;
+import com.p5store.dto.response.CategoryCountResponse;
 import com.p5store.dto.response.ProductResponse;
 import com.p5store.service.FileStorageService;
 import com.p5store.service.ProductService;
@@ -54,6 +55,11 @@ public class ProductController {
     @GetMapping("/category/{categoryId}")
     public List<ProductResponse> getByCategory(@PathVariable Long categoryId) {
         return productService.getByCategory(categoryId);
+    }
+
+    @GetMapping("/category-counts")
+    public List<CategoryCountResponse> getCategoryCounts() {
+        return productService.getCategoryCounts();
     }
 
     @GetMapping("/search")

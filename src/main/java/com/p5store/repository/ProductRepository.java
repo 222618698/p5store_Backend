@@ -42,4 +42,17 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT p FROM Product p JOIN FETCH p.category WHERE p.status = 'ACTIVE' ORDER BY p.createdAt DESC")
     List<Product> findNewArrivals(Pageable pageable);
+
+    // Rolls subcategory product counts up to their top-level ancestor (or the
+    // category itself if it has no parent), so the storefront sidebar can show
+    // an accurate count per top-level category without fetching every product.
+    @Query("SELECT COALESCE(c.parent.id, c.id) AS categoryId, COUNT(p) AS count " +
+           "FROM Product p JOIN p.category c WHERE p.status = 'ACTIVE' " +
+           "GROUP BY COALESCE(c.parent.id, c.id)")
+    List<CategoryProductCount> countByTopLevelCategory();
+
+    interface CategoryProductCount {
+        Long getCategoryId();
+        Long getCount();
+    }
 }

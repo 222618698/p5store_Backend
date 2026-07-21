@@ -1,6 +1,7 @@
 package com.p5store.service;
 
 import com.p5store.dto.request.ProductRequest;
+import com.p5store.dto.response.CategoryCountResponse;
 import com.p5store.dto.response.ProductResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,4 +21,5 @@ public interface ProductService {
     List<ProductResponse> getByCategory(Long categoryId);
     List<ProductResponse> search(String q);
     List<ProductResponse> getByPriceRange(BigDecimal min, BigDecimal max);
+    List<CategoryCountResponse> getCategoryCounts();
 }
