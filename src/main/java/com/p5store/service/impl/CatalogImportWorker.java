@@ -34,7 +34,7 @@ import java.util.Map;
 @Slf4j
 public class CatalogImportWorker {
 
-    private static final int BATCH_SIZE = 500;
+    public static final int BATCH_SIZE = 500;
 
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
@@ -86,10 +86,17 @@ public class CatalogImportWorker {
         return idByName;
     }
 
+    /**
+     * Imports one batch (a few hundred products) in its own transaction, so a
+     * crash partway through the full ~30k-row import (this ran on a
+     * memory-constrained free-tier instance and did crash mid-import before)
+     * leaves already-committed batches intact instead of rolling back
+     * everything imported so far.
+     */
     @Transactional
-    public int importProducts(List<CatalogImportProduct> products, Map<String, Long> categoryIdByName) {
+    public int importBatch(List<CatalogImportProduct> batch, Map<String, Long> categoryIdByName) {
         int count = 0;
-        for (CatalogImportProduct p : products) {
+        for (CatalogImportProduct p : batch) {
             Long categoryId = categoryIdByName.get(p.categoryName());
             if (categoryId == null) {
                 log.warn("Skipping product '{}': category '{}' not found", p.name(), p.categoryName());
@@ -111,13 +118,8 @@ public class CatalogImportWorker {
 
             productRepository.save(product);
             count++;
-
-            if (count % BATCH_SIZE == 0) {
-                entityManager.flush();
-                entityManager.clear();
-                log.info("Imported {} products...", count);
-            }
         }
+        entityManager.flush();
         return count;
     }
 }
