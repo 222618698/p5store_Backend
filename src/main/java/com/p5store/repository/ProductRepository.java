@@ -15,6 +15,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     boolean existsBySku(String sku);
     Optional<Product> findBySku(String sku);
+    long countByCategory_Id(Long categoryId);
 
     @Query(value = "SELECT p FROM Product p JOIN FETCH p.category WHERE p.status = :status",
            countQuery = "SELECT COUNT(p) FROM Product p WHERE p.status = :status")

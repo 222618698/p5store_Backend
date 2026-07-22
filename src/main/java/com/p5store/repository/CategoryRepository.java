@@ -11,6 +11,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     boolean existsByName(String name);
     List<Category> findByIsActiveTrue();
     List<Category> findByParentIsNull();
+    long countByParent_Id(Long parentId);
 
     // Self-referencing parent FK must be cleared before a bulk delete of all
     // categories, otherwise deleting a parent while children still reference

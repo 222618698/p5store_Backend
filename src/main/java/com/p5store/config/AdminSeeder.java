@@ -131,6 +131,14 @@ public class AdminSeeder implements CommandLineRunner {
     }
 
     private void seedCategories() {
+        // Once any categories exist (whether the demo set or a real imported
+        // catalog), stop injecting the demo starter categories — this used to
+        // unconditionally re-add "Electronics" / "Home & Living" / "Sports"
+        // on every restart even after the real catalog was imported, since
+        // those specific names don't exist in it.
+        if (categoryRepository.count() > 0) {
+            return;
+        }
         for (String name : STARTER_CATEGORIES) {
             if (!categoryRepository.existsByName(name)) {
                 Category category = new Category();
